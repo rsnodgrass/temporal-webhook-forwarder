@@ -1,0 +1,14 @@
+# *** NOTE THIS IS NOT YET IMPLEMENTED ***
+#
+# EXAMPLE HYDRA CONFIG FOR DYNAMICALLY CONFIGURING WEBHOOKS
+#
+# see https://hydra.cc/docs/patterns/select_multiple_configs_from_config_group/
+
+defaults:
+  - webhooks:
+    - shopify
+#   - shipstation
+
+server:
+  host: 0.0.0.0
+#  port: 5000

@@ -1,0 +1,9 @@
+Flask[async]>=2.2.2
+argparse
+hydra-core
+omegaconf
+pycryptodome>=3.15.0
+pyopenssl
+temporalio
+uvloop
+importlib

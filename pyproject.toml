@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "temporal-webhook-forwarder"
+version = "0.0.1"
+description = "Enqueue webhook calls as Temporal Durable Executions"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/rsnodgrass/temporal-webhook-forwarder"
+keywords = ["temporal", "webhook", "durable execution"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[tool.poetry.group.dev.dependencies]
+black = "^22.10.0"
+pre-commit = "^2.20.0"
+pylint = "^2.15.5"
+pytest = "^7.2.0"
+
+[tool.black]
+line-length = 90
+target-version = ["py311"]
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+force_to_top = [ "logging" ]
+balanced_wrapping = true
+
+[tool.pycln]
+all = true
