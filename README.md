@@ -75,7 +75,7 @@ Running the forwarder manually:
 
 ```console
 pip3 install -r src/requirements.txt
-python3 temporal_forwarder
+python3 app.py
 ```
 
 Generating a dev environment LetsEncrypt cert:
@@ -120,7 +120,7 @@ SHOPIFY_WEBHOOKS_KEY - Shopify provided API secret key to validate webhook data 
 
 ## Features
 
-* task queue routing based on a single global task queue per forward (e.g. ShopifyWebhooks)
+* task queue routing based on a single global task queue per forwarder (e.g. ShopifyWebhooks)
 * payload verification using Shopify webhook HMAC signatures
 * (optional) 256-bit AES symmetric encryption of workflow payloads passed into Temporal
 
@@ -133,7 +133,7 @@ SHOPIFY_WEBHOOKS_KEY - Shopify provided API secret key to validate webhook data 
 #### Not Yet Implemented
 
 * advanced config mechanism (in addition to command line and ENV vars .. hydra or dynaconf)
-* support for plugging in other relevent webhooks (Shippo, Shipstation, Klarna, ShipBob, etc)
+* support for plugging in other relevent webhooks (Shippo, Shipstation, Klarna, ShipBob, etc) **[partially implemented]**
 
 #### Left to the Reader
 
