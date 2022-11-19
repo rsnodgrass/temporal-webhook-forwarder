@@ -100,6 +100,7 @@ async def forward_webhook(forwarder_slug):
     if webhook.verify():
         headers["X-Webhook-Verified"] = "True"
     else:
+        headers["X-Webhook-Verified"] = "False"
         msg = f"Webhook {forwarder_slug} {webhook.id} failed verification"
         if Config.validate_hmac:
             msg += " – DROPPING EVENT"
@@ -244,8 +245,6 @@ def env_help():
 # @hydra.main(config_path=".", config_name="config")
 # async def main(cfg: DictConfig):
 async def main():
-    # FIXME: load all the webhooks so we can display any env variables in help
-
     p = argparse.ArgumentParser(
         description="Shopify webhook callbacks to Temporal workflow forwarder",
         epilog=(
