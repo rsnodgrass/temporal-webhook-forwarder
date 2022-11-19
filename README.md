@@ -7,8 +7,8 @@ Forward webhook calls to Temporal for Durable Execution
 
 ## Overview
 
-This is a proof-of-concept to better understand how Temporal works. I manage an
-old Shopify shop which had legacy integrations doing manual batch processing
+This is a proof-of-concept to better understand how [Temporal](https://temporal.io) works.
+I manage an\ old Shopify shop which had legacy integrations doing manual batch processing
 and figured it was a perfect time to move some of them over to webhooks.
 
 The forwarder starts a Temporal Durable Execution workflow with data passed via
