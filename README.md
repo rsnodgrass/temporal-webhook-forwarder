@@ -79,7 +79,7 @@ important (hence Python).
 
 Add webhooks to the `Setting > Notifications > Webhooks` admin dashboard for the Shopify store under https://yourstore.myshopify.com/admin/settings/notifications:
 
-[](docs/shopify_webhook_admin.png)
+![Shopify Setup Example](https://github.com/rsnodgrass/temporal-webhook-forwarder/blob/main/docs/shopify_webhook_admin.png?raw=true)
 
 Each webhook callback should point to `https://host:port/temporal/shopify` where your forwarder is being hosted. For example: `https://webhook.yourdomain.com:5555/temporal/shopify`
 
