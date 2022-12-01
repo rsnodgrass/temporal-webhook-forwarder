@@ -5,7 +5,7 @@ Forward webhook calls to Temporal for Durable Execution
 [![stability-alpha](https://img.shields.io/badge/stability-alpha-f4d03f.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#alpha)
 [![MIT license](http://img.shields.io/badge/license-MIT-brightgreen.svg)](http://opensource.org/licenses/MIT)
 
-## Overview
+### Overview
 
 This is a proof-of-concept to better understand how [Temporal](https://temporal.io) works.
 I manage an old Shopify shop which had legacy integrations doing manual batch processing
@@ -18,7 +18,7 @@ webhook caller so that they may retry per their SLA/policy. The webhook data
 is verified as valid before enqueuing to Temporal by checking digest
 signatures (and/or client certificates).
 
-## Encryption (Optional)
+### Encryption (Optional)
 
 This uses Temporal AES GCM as defined in Temporal samples to KISS and ensure this
 forwarder can be inserted between Shopify and workflows/activities implemented in
@@ -36,7 +36,7 @@ representation of the key. Additionally, 'AES_KEY_ID' can be defined with a
 logical name/id for the key to inform worker activities which key they
 should use to decrypt the payload (if workers implement this).
 
-## Performance Consideration
+### Performance Consideration
 
 For efficiency at large scale where fleet cost matters this "Proof of Concept"
 should really be re-written in a compiled language like Rust or Go, instead of Python.
@@ -45,16 +45,41 @@ for a Shop with very low transaction rates (e.g. call volume rates measured in
 several per hour)...and dev implementation time was significantly more
 important (hence Python).
 
-## Webhook Forwarder Plugins
+
+### Features
+
+* (optional) 256-bit AES symmetric encryption of workflow payloads passed into Temporal
+
+#### Unsupported
+
+##### Not Yet Implemented
+
+* advanced config mechanism (in addition to command line and ENV vars .. hydra or dynaconf)
+* support for plugging in other relevent webhooks (Shippo, Shipstation, Klarna, ShipBob, etc) **[partially implemented]**
+
+##### Left to the Reader
+
+* Temporal TLS authentication **(skipped since my Temporal instance was running within same internal network)**
+* support/testing of certificates issued by a CA other than Let's Encrypt
+* routing to task_queues based on X-Shopify-Topic headers **(not needed)**
+* multi-tenant task routing based on Shopify Shop domain to Temporal task queues (`X-Shopify-Shop-Domain`)
+
+##### Skipped By Design
+
+* routing to multiple different Temporal endpoints based on headers or payload – unnecessary complexity when it is probably easier to spin up separate instances of the forwarder
+* one to many delivery (e.g. multiple Temporal instances/queues/etc for a single inbound webhook)
+* tranformations of the webhook data
+
+## Available Webhook Forwarder Plugins
 
 ### Shopify Webhook
 
-#### Requirements
+##### Requirements
 
 * valid SSL fullchain.pem and privkey.pem certificates for server's DNS name (e.g. webhook.yourdomain.com) - **required by Shopify**
 * 'SHOPIFY_WEBHOOKS_KEY' env variable defined (value from Shopify)
 
-#### Setup Shopify Webhook Notifications
+##### Setup Shopify Webhook Notifications
 
 Add webhooks to the `Setting > Notifications > Webhooks` admin dashboard for the Shopify store under https://yourstore.myshopify.com/admin/settings/notifications:
 
@@ -62,16 +87,16 @@ Add webhooks to the `Setting > Notifications > Webhooks` admin dashboard for the
 
 Each webhook callback should point to `https://host:port/temporal/shopify` where your forwarder is being hosted. For example: `https://webhook.yourdomain.com:5555/temporal/shopify`
 
-#### Features
+##### Features
 
 * task queue routing based on a single global task queue per forwarder (e.g. ShopifyWebhooks)
 * payload verification using Shopify webhook HMAC signatures
 
-#### Warnings
+##### Warnings
 
 * Shopify does not provide a HMAC digest of `X-Shopify-*` header values (so technically they could be tampered with by MITM)
 
-#### Skipped By Design
+##### Skipped By Design
 
 * routing based on `X-Shopify-API-Version` (KISS, this is passed via the data into the Temporal workflow)
 * routing or dropping of events based on `X-Shopify-Stage` (production, test) – could also map these to Temporal namespaces
@@ -83,6 +108,7 @@ Each webhook callback should point to `https://host:port/temporal/shopify` where
 ### Generic Webhook
 
 Blindly enqueues to Temporal Durable Execution whatever data is submitted as POST or GET, along with some headers. This should probably NOT be used on a production server that is open to all traffic since it does not verify the data or caller.
+
 
 
 ## Running
@@ -141,29 +167,6 @@ Configured forwarder env vars:
 SHOPIFY_WEBHOOKS_KEY - Shopify provided API secret key to validate webhook data (REQUIRED)
 ```
 
-## Features
-
-* (optional) 256-bit AES symmetric encryption of workflow payloads passed into Temporal
-
-### Unsupported
-
-#### Not Yet Implemented
-
-* advanced config mechanism (in addition to command line and ENV vars .. hydra or dynaconf)
-* support for plugging in other relevent webhooks (Shippo, Shipstation, Klarna, ShipBob, etc) **[partially implemented]**
-
-#### Left to the Reader
-
-* Temporal TLS authentication **(skipped since my Temporal instance was running within same internal network)**
-* support/testing of certificates issued by a CA other than Let's Encrypt
-* routing to task_queues based on X-Shopify-Topic headers **(not needed)**
-* multi-tenant task routing based on Shopify Shop domain to Temporal task queues (`X-Shopify-Shop-Domain`)
-
-#### Skipped By Design
-
-* routing to multiple different Temporal endpoints based on headers or payload – unnecessary complexity when it is probably easier to spin up separate instances of the forwarder
-* one to many delivery (e.g. multiple Temporal instances/queues/etc for a single inbound webhook)
-* tranformations of the webhook data
 
 ## Support
 
