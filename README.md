@@ -8,7 +8,7 @@ Forward webhook calls to Temporal for Durable Execution
 ## Overview
 
 This is a proof-of-concept to better understand how [Temporal](https://temporal.io) works.
-I manage an\ old Shopify shop which had legacy integrations doing manual batch processing
+I manage an old Shopify shop which had legacy integrations doing manual batch processing
 and figured it was a perfect time to move some of them over to webhooks.
 
 The forwarder starts a Temporal Durable Execution workflow with data passed via
@@ -17,13 +17,6 @@ Execution workflow fails, this returns the appropriate status code to the
 webhook caller so that they may retry per their SLA/policy. The webhook data
 is verified as valid before enqueuing to Temporal by checking digest
 signatures (and/or client certificates).
-
-## Requirements
-
-#### Shopify Webhooks
-
-* valid SSL fullchain.pem and privkey.pem certificates for server's DNS name (e.g. webhook.yourdomain.com) - **required by Shopify**
-* 'SHOPIFY_WEBHOOKS_KEY' env variable defined (value from Shopify)
 
 ## Encryption (Optional)
 
@@ -52,15 +45,45 @@ for a Shop with very low transaction rates (e.g. call volume rates measured in
 several per hour)...and dev implementation time was significantly more
 important (hence Python).
 
-## Shopify Integration
+## Webhook Forwarder Plugins
 
-### Setup Shopify Webhook Notifications
+### Shopify Webhook
+
+#### Requirements
+
+* valid SSL fullchain.pem and privkey.pem certificates for server's DNS name (e.g. webhook.yourdomain.com) - **required by Shopify**
+* 'SHOPIFY_WEBHOOKS_KEY' env variable defined (value from Shopify)
+
+#### Setup Shopify Webhook Notifications
 
 Add webhooks to the `Setting > Notifications > Webhooks` admin dashboard for the Shopify store under https://yourstore.myshopify.com/admin/settings/notifications:
 
 [](docs/shopify_webhook_admin.png)
 
 Each webhook callback should point to `https://host:port/temporal/shopify` where your forwarder is being hosted. For example: `https://webhook.yourdomain.com:5555/temporal/shopify`
+
+#### Features
+
+* task queue routing based on a single global task queue per forwarder (e.g. ShopifyWebhooks)
+* payload verification using Shopify webhook HMAC signatures
+
+#### Warnings
+
+* Shopify does not provide a HMAC digest of `X-Shopify-*` header values (so technically they could be tampered with by MITM)
+
+#### Skipped By Design
+
+* routing based on `X-Shopify-API-Version` (KISS, this is passed via the data into the Temporal workflow)
+* routing or dropping of events based on `X-Shopify-Stage` (production, test) – could also map these to Temporal namespaces
+* dropping/filtering events based on `X-Shopify-*` header values
+* automatic creation of webhook subscriptions within Shopify itself using the admin API (this should be a separate general purpose tool, unrelated to this forwarder...one may already exist)
+* support for multiple SHOPIFY_WEBHOOK_KEY to enable multi-tenant forwarding for multiple Shopify stores
+* dynamically routing based on Shopify API advertised webhooks (see https://help.shopify.com/en/manual/orders/notifications/webhooks) – just route all valid signed to task queues
+
+### Generic Webhook
+
+Blindly enqueues to Temporal Durable Execution whatever data is submitted as POST or GET, along with some headers. This should probably NOT be used on a production server that is open to all traffic since it does not verify the data or caller.
+
 
 ## Running
 
@@ -120,13 +143,7 @@ SHOPIFY_WEBHOOKS_KEY - Shopify provided API secret key to validate webhook data 
 
 ## Features
 
-* task queue routing based on a single global task queue per forwarder (e.g. ShopifyWebhooks)
-* payload verification using Shopify webhook HMAC signatures
 * (optional) 256-bit AES symmetric encryption of workflow payloads passed into Temporal
-
-### Warnings
-
-* Shopify does not provide a HMAC digest of `X-Shopify-*` header values (so technically they could be tampered with by MITM)
 
 ### Unsupported
 
@@ -137,21 +154,14 @@ SHOPIFY_WEBHOOKS_KEY - Shopify provided API secret key to validate webhook data 
 
 #### Left to the Reader
 
-* Temporal TLS authentication **(skipped since Temporal instance was running within same internal network)**
+* Temporal TLS authentication **(skipped since my Temporal instance was running within same internal network)**
 * support/testing of certificates issued by a CA other than Let's Encrypt
 * routing to task_queues based on X-Shopify-Topic headers **(not needed)**
 * multi-tenant task routing based on Shopify Shop domain to Temporal task queues (`X-Shopify-Shop-Domain`)
 
 #### Skipped By Design
 
-* routing based on `X-Shopify-API-Version` (KISS, this is passed via the data into the Temporal workflow)
-* routing or dropping of events based on `X-Shopify-Stage` (production, test) – could also map these to Temporal namespaces
-* dropping/filtering events based on `X-Shopify-*` header values
-* automatic creation of webhook subscriptions within Shopify itself using the admin API (this should be a separate general purpose tool, unrelated to this forwarder...one may already exist)
 * routing to multiple different Temporal endpoints based on headers or payload – unnecessary complexity when it is probably easier to spin up separate instances of the forwarder
-* support for multiple SHOPIFY_WEBHOOK_KEY to enable multi-tenant forwarding for multiple Shopify stores
-* dynamically routing based on API advertised webhooks (see https://help.shopify.com/en/manual/orders/notifications/webhooks) – just route all valid signed to task queues
-* routing to multiple different Temporal endpoints based on headers or payload – unnecessary complexity when it is conceptually easier to spin up separate instances of the forwarder
 * one to many delivery (e.g. multiple Temporal instances/queues/etc for a single inbound webhook)
 * tranformations of the webhook data
 
