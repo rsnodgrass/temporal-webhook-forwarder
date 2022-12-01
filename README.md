@@ -18,7 +18,7 @@ webhook caller so that they may retry per their SLA/policy. The webhook data
 is verified as valid before enqueuing to Temporal by checking digest
 signatures (and/or client certificates).
 
-### Encryption (Optional)
+### AES 256-bit Encryption (Optional)
 
 This uses Temporal AES GCM as defined in Temporal samples to KISS and ensure this
 forwarder can be inserted between Shopify and workflows/activities implemented in
@@ -48,23 +48,19 @@ important (hence Python).
 
 ### Features
 
-* (optional) 256-bit AES symmetric encryption of workflow payloads passed into Temporal
-
-#### Unsupported
-
-##### Not Yet Implemented
+#### Not Yet Implemented
 
 * advanced config mechanism (in addition to command line and ENV vars .. hydra or dynaconf)
 * support for plugging in other relevent webhooks (Shippo, Shipstation, Klarna, ShipBob, etc) **[partially implemented]**
 
-##### Left to the Reader
+#### Left to the Reader
 
 * Temporal TLS authentication **(skipped since my Temporal instance was running within same internal network)**
 * support/testing of certificates issued by a CA other than Let's Encrypt
 * routing to task_queues based on X-Shopify-Topic headers **(not needed)**
 * multi-tenant task routing based on Shopify Shop domain to Temporal task queues (`X-Shopify-Shop-Domain`)
 
-##### Skipped By Design
+#### Skipped By Design
 
 * routing to multiple different Temporal endpoints based on headers or payload – unnecessary complexity when it is probably easier to spin up separate instances of the forwarder
 * one to many delivery (e.g. multiple Temporal instances/queues/etc for a single inbound webhook)
