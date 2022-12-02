@@ -1,8 +1,7 @@
-FROM python:3.11-alpine
+FROM python:3.11-bullseye
 
-# Install needed dependencies for our app to run.
-RUN apk update \
-  && apk add --no-cache \
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
     gcc \
     libffi-dev \
     musl-dev
@@ -26,7 +25,7 @@ USER "$USER"
 ENV PATH="/home/$USER/.local/bin:${PATH}"
 
 # Copy requirements file to our container, install, and remove
-# files to we don't need to reduce the container size
+# files we don't need to reduce the container size
 COPY requirements.txt .
 RUN pip install \
     --no-cache-dir \
