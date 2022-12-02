@@ -20,7 +20,6 @@ from flask import Request, Response, abort
 from temporal_forwarder import EnvVar, TemporalDestination
 from temporal_forwarder.webhook import WebhookCall, WebhookForwarder
 
-
 X_SHOPIFY_API_VERSION = "X-Shopify-API-Version"
 X_SHOPIFY_HMAC_SHA256 = "X-Shopify-Hmac-SHA256"
 X_SHOPIFY_SHOP_DOMAIN = "X-Shopify-Shop-Domain"

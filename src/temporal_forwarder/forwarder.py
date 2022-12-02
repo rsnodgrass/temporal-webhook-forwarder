@@ -9,13 +9,12 @@ from flask import Response, abort
 from flask import current_app as app
 from flask import json, request
 
-from app import (  # FIXME: bind to the temporal client(s) configured
-    TEMPORAL_CLIENT,
-    WEBHOOK_FORWARDERS,
-    Config,
-)
-
+# FIXME: this should not be global
+from app import Config
 from temporal_forwarder.webhook import WebhookCall
+
+from .plugins import WEBHOOK_FORWARDERS
+from .temporal_client import get_temporal_client
 
 LOG = logging.getLogger()
 
@@ -24,7 +23,7 @@ LOG = logging.getLogger()
 async def forward_webhook(forwarder_slug):
     forwarder = WEBHOOK_FORWARDERS.get(forwarder_slug)
     if not forwarder:
-        LOG.debug("Ignoring request for unknown forwarder {forwarder_slug}")
+        LOG.info(f"Ignoring request for unknown forwarder {forwarder_slug}")
         return ("", HTTPStatus.NOT_IMPLEMENTED)  # 501
 
     # create a new webhook object for the request
@@ -60,7 +59,7 @@ async def forward_webhook(forwarder_slug):
 
     # create the JSON webhook payload that will be passed to execution
     temporal_payload = json.dumps({"headers": headers, "data": data})
-    LOG.debug(f"Webhook {webhook.id}: %s", temporal_payload)
+    LOG.info(f"Webhook {webhook.id}: %s", temporal_payload)
 
     # start_workflow ONLY returns if durable execution actually started
     await start_workflow(webhook, temporal_payload)
@@ -80,7 +79,8 @@ async def start_workflow(webhook: WebhookCall, payload):
             LOG.info(
                 f"Starting {dest.workflow_type} {webhook.id} on queue {dest.task_queue}"
             )
-            handle = await TEMPORAL_CLIENT.start_workflow(
+            client = await get_temporal_client()
+            handle = await client.start_workflow(
                 dest.workflow_type,
                 payload,
                 # namespace=destination.namespace, # NOT SUPPORTED

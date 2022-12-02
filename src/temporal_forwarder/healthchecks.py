@@ -8,12 +8,11 @@ from http import HTTPStatus
 from flask import Response, abort
 from flask import current_app as app
 
+from .temporal_client import get_temporal_client
+
 LOG = logging.getLogger()
 
-from app import (  # FIXME: bind to the temporal client(s) configured
-    TEMPORAL_CLIENT,
-    WEBHOOK_FORWARDERS,
-)
+from .plugins import WEBHOOK_FORWARDERS
 
 
 @app.route("/")
@@ -27,7 +26,8 @@ async def deep_healthcheck():
     # If all Temporal endpoints are alive and accepting workflows, the
     # forwarder is considered healthy. However, if even ONE endpoint
     # fails (even if others are alive) this still reports unhealthy.
-    temporal_endpoints = {"default": TEMPORAL_CLIENT}
+    client = await get_temporal_client()
+    temporal_endpoints = {"default": client}
 
     # add all Temporal endpoints in use by the forwarders to the healthcheck list
     for slug, forwarder in WEBHOOK_FORWARDERS.items():

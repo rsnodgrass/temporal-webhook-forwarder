@@ -1,7 +1,4 @@
 import logging
-import base64
-import json
-from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 
 from flask import Flask
@@ -26,7 +23,17 @@ def create_app(config):
 
         return app
 
-
+# dumb configuration mechanism, really should use hydra/OmegaConf, Dynaconf or dotenv
+@dataclass
+class Config:
+    temporal_endpoint: str = DEFAULT_TEMPORAL_ENDPOINT
+    temporal_namespace: str = "default"
+    validate_hmac: bool = True
+    global_task_queue: bool = True
+    ssl_cert: str = "fullchain.pem"
+    ssl_key: str = "privkey.pem"
+    fail_on_fatal: bool = True
+    encoding: str = "utf-8"
 
 @dataclass
 class TemporalDestination:
