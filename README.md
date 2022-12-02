@@ -114,6 +114,11 @@ to run Nginx + Gunicorn + Flask + auto-refreshed LetsEncrypt certificates using 
 
 Of course, this package can be used in a variety of deployment models and cloud services. Follow the host setup, configuration, operations, scaling, and tuning guidelines provided by the above packages (including how to use alternative certificates to LetsEncrypt).
 
+##### docker-compose
+
+1. create [.env](https://github.com/smallwat3r/docker-nginx-gunicorn-flask-letsencrypt/blob/master/.env.example) file if using `docker-compose`
+2. run 'make dc-start' to start app
+
 ### Notes for Running Manually
 
 Running the forwarder manually:
