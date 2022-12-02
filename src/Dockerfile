@@ -4,7 +4,8 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
     gcc \
     libffi-dev \
-    musl-dev
+    musl-dev \
+    gunicorn
 
 WORKDIR /opt/app
 

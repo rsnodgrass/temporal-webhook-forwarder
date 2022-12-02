@@ -1,10 +1,13 @@
 # docker-compose file managing Nginx and the application
+#
 # Loading some variables from the .env file:
 #   - DOMAIN: DNS domain name
 #   - EMAIL: Maintainer email
 #   - APP_FOLDER: Directory containing the application
 #   - FLASK_APP: Flask entrypoint
 #   - FLASK_ENV: Flask environment
+#
+# See https://github.com/smallwat3r/docker-nginx-gunicorn-flask-letsencrypt
 
 version: "3.2"
 
