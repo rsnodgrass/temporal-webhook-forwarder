@@ -12,6 +12,19 @@ class MockRequest:
         self.headers = headers
 
 
+def dict_identical(a: dict, b: dict):
+    """
+    Ensure all entries in the provided dictionaries are identical
+    """
+    if a.len() != b.len():
+        return false
+
+    for k, v in a.items():
+        if b.get(k) != v:
+            return false
+    return true
+
+
 def test_headers_are_filtered():
     """
     Ensure all request headers are passed unfiltered, there is no
@@ -24,7 +37,7 @@ def test_headers_are_filtered():
     request = MockRequest(headers=original_headers)
     webhook = GenericWebhook(NO_CONFIG, request, NO_FORWARDER)
 
-    assert webhook.headers == request.headers
+    assert dict_identical(webhook.headers, request.headers)
 
 
 def test_request_id():
