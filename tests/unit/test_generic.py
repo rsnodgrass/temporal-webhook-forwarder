@@ -16,13 +16,13 @@ def dict_identical(a: dict, b: dict):
     """
     Ensure all entries in the provided dictionaries are identical
     """
-    if a.len() != b.len():
-        return false
+    if len(a) != len(b):
+        return False
 
     for k, v in a.items():
         if b.get(k) != v:
-            return false
-    return true
+            return False
+    return True
 
 
 def test_headers_are_filtered():
@@ -37,7 +37,7 @@ def test_headers_are_filtered():
     request = MockRequest(headers=original_headers)
     webhook = GenericWebhook(NO_CONFIG, request, NO_FORWARDER)
 
-    assert dict_identical(webhook.headers, request.headers)
+    assert dict_identical(webhook.headers(), request.headers)
 
 
 def test_request_id():
