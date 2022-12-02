@@ -25,6 +25,7 @@ def register_plugins(config):
     # register_webhook_forwarder(
     #    "generic", "temporal_forwarder.webhooks.generic.GenericForwarder", onfig
     # )
+    return WEBHOOK_FORWARDERS
 
 
 def discover_webhook_forwarders():
