@@ -8,7 +8,8 @@ import uuid
 
 from flask import Request
 
-from .. import TemporalDestination, WebhookCall, WebhookForwarder
+from temporal_forwarder import TemporalDestination
+from temporal_forwarder.webhook import WebhookCall, WebhookForwarder
 
 DEFAULT_TEMPORAL_WORKFLOW = "GenericWebhook"
 DEFAULT_TASK_QUEUE = "generic_webhooks"

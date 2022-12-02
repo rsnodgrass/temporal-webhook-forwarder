@@ -15,7 +15,7 @@ from app import (  # FIXME: bind to the temporal client(s) configured
     Config,
 )
 
-from . import WebhookCall
+from temporal_forwarder.webhook import WebhookCall
 
 LOG = logging.getLogger()
 
