@@ -1,8 +1,0 @@
-shopify:
-  route: /shopify
-  class: temporal_gateway.shopify.ShopifyWebhooks
-
-  temporal:
-    endpoint: "https://localhost:7233"
-    namespace: default
-    queue: shopify_webhooks
