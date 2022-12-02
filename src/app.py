@@ -9,22 +9,17 @@ import os
 import pkgutil
 import sys
 from dataclasses import dataclass
-from http import HTTPStatus
+from temporal_forwarder.codec import EncryptionCodec
 
-# import hydra
-# from omegaconf import DictConfig, OmegaConf
 import temporalio
 import uvloop
-from flask import Flask, Response, abort, json, request
+from flask import Flask
 from temporalio.client import Client
 
 from temporal_forwarder import *
-from temporal_forwarder.codec import EncryptionCodec
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 LOG = logging.getLogger()
-
-app = Flask(__name__)
 
 TEMPORAL_CLIENT = None
 
@@ -34,7 +29,7 @@ WEBHOOK_FORWARDERS = {}
 #    'shippo': temporal_forwarder.webhooks.forwarder_shippo.ShippoForwarder
 #    'shipstation': temporal_forwarder.webhooks.forwarder_shipstation.ShipstationForwarder
 
-# dumb configuration mechanism, really should use hydra, Dynaconf or dotenv
+# dumb configuration mechanism, really should use hydra/OmegaConf, Dynaconf or dotenv
 @dataclass
 class Config:
     temporal_endpoint: str = DEFAULT_TEMPORAL_ENDPOINT
@@ -47,142 +42,31 @@ class Config:
     encoding: str = "utf-8"
 
 
-@app.route("/")
-@app.route("/temporal")
-async def healthcheck():
-    # If all Temporal endpoints are alive and accepting workflows, the
-    # forwarder is considered healthy. However, if even ONE endpoint
-    # fails (even if others are alive) this still reports unhealthy.
-    temporal_endpoints = {"default": TEMPORAL_CLIENT}
-
-    # add all Temporal endpoints in use by the forwarders to the healthcheck list
-    for slug, forwarder in WEBHOOK_FORWARDERS.items():
-        for dest in forwarder.destinations():
-            temporal_endpoints[slug] = dest.endpoint
-
-    checked_endpoints = {}
-    for slug, endpoint in temporal_endpoints.items():
-        try:
-            # only check each physical Temporal endpoint once (e.g. multiple
-            # forwarders can share the same Temporal instance)
-            if not endpoint in checked_endpoints:
-                # FIXME: do some sort of keep-alive check against the client for this endpoint
-                checked_endpoints[endpoint] = [slug]
-            else:
-                checked_endpoints[endpoint].append(slug)
-        except Exception as e:
-            LOG.warning(f"Temporal {endpoint} for {slug} failed health check", e)
-            return ("FAILED", HTTPStatus.SERVICE_UNAVAILABLE)  # 503
-
-    return ("OK", HTTPStatus.OK)  # 200
-
-
-# Example: https://temporal-webhook.mydomain.com:5000/temporal/shopify
-@app.route("/temporal/<forwarder_slug>", methods=["POST", "GET"])
-async def forward_webhook(forwarder_slug):
-    forwarder = WEBHOOK_FORWARDERS.get(forwarder_slug)
-    if not forwarder:
-        LOG.debug("Ignoring request for unknown forwarder {forwarder_slug}")
-        return ("", HTTPStatus.NOT_IMPLEMENTED)  # 501
-
-    # create a new webhook object for the request
-    webhook = forwarder.new_webhook_call(request)
-
-    # inject additional meta-data useful for debugging in workflow/activities
-    headers = webhook.headers()
-    headers |= {
-        "X-Webhook-Route": forwarder_slug,
-        "X-Webhook-Method": request.method,
-        #'X-Webhook-Time': now
-    }
-
-    # verify the webhook request is valid
-    if webhook.verify():
-        headers["X-Webhook-Verified"] = "True"
-    else:
-        headers["X-Webhook-Verified"] = "False"
-        msg = f"Webhook {forwarder_slug} {webhook.id} failed verification"
-        if Config.validate_hmac:
-            msg += " – DROPPING EVENT"
-            LOG.error(msg)
-            abort(Response(msg, HTTPStatus.UNAUTHORIZED))
-        else:
-            msg + " – PROCESSING ANYWAY!!!"
-            LOG.warning(msg)
-
-    # if there is absolutely no data to provide, skip enqueuing the webhook
-    data = webhook.data()
-    if not data or data == "{}":
-        LOG.warning(f"No data for webhook {forwarder_slug} {webhook.id} - SKIPPING")
-        return ("", HTTPStatus.BAD_REQUEST)
-
-    # create the JSON webhook payload that will be passed to execution
-    temporal_payload = json.dumps({"headers": headers, "data": data})
-    LOG.debug(f"Webhook {webhook.id}: %s", temporal_payload)
-
-    # start_workflow ONLY returns if durable execution actually started
-    await start_workflow(webhook, temporal_payload)
-
-    # include the webhook.id used to enqueue to Temporal in the response
-    return (webhook.id, HTTPStatus.OK)
-
-
-# NOTE: Temporal task queues should typically be configured to allow only ONE
-# instance of a workflow_id active at a time
-async def start_workflow(webhook: WebhookCall, payload):
-    for dest in [webhook.destination()]:
-        try:
-            # NOTE: this really should start on as many destinations as possible and
-            # then abort if any error occured (to give a chance of success to later
-            # destinations in the list.
-            LOG.info(
-                f"Starting {dest.workflow_type} {webhook.id} on queue {dest.task_queue}"
-            )
-            handle = await TEMPORAL_CLIENT.start_workflow(
-                dest.workflow_type,
-                payload,
-                # namespace=destination.namespace, # NOT SUPPORTED
-                task_queue=dest.task_queue,
-                id=webhook.id,
-            )
-            return handle
-
-        except Exception as e:
-            msg = f"Failed starting workflow {webhook.id} on queue {dest.task_queue} (exception {e})"
-            LOG.error(msg)
-            abort(Response(msg, HTTPStatus.FAILED_DEPENDENCY))
-
-
-async def start_temporal_forwarder(host: str, port: int):
-    # use Temporal's unencrypted default data converter (unless overridden later)
-    data_converter = temporalio.converter.default()
-
-    # if AES_KEY env var is specified, enable payload encryption
-    aes_key = os.environ.get("AES_KEY")
-    if aes_key:
-        # enable payload encryption codec for the existing data converter
-        data_converter = dataclasses.replace(
-            temporalio.converter.default(),
-            payload_codec=EncryptionCodec(
-                key_id=os.environ.get("AES_KEY_ID", "unnamed-key"),
-                key=bytes.fromhex(aes_key),
-            ),
-        )
-    else:
-        LOG.warning("Payload encryption is NOT enabled (set AES_KEY env var)")
-
-    LOG.info(
-        f"Using Temporal endpoint {Config.temporal_endpoint} (namespace {Config.temporal_namespace})"
+def register_plugins(app, config):
+    # FIXME: poor mans plugin (use config to determine which forwarders to include)
+    register_webhook_forwarder(
+        "shopify", "temporal_forwarder.webhooks.shopify.ShopifyForwarder", config
     )
-    global TEMPORAL_CLIENT
-    TEMPORAL_CLIENT = await Client.connect(
-        Config.temporal_endpoint, data_converter=data_converter
-    )
+    # register_webhook_forwarder(
+    #    "generic", "temporal_forwarder.webhooks.generic.GenericForwarder", onfig
+    # )
 
-    # run Flask app until complete
-    await app.run(
-        host=host, port=port, debug=True, ssl_context=(Config.ssl_cert, Config.ssl_key)
-    )
+
+def create_app(config):
+    """
+    Create the Flask app (also used for functional tests)
+    """
+    app = Flask(__name__)
+
+    with app.app_context():
+
+        # import various routes
+        from temporal_forwarder import forwarder, healthchecks
+
+        # FUTURE: register Blueprints
+        # app.register_blueprint(auth.auth_bp)
+
+        return app
 
 
 def discover_webhook_forwarders():
@@ -218,6 +102,38 @@ def register_webhook_forwarder(
             sys.exit(1)
 
 
+async def start_temporal_forwarder(app, host: str, port: int):
+    # use Temporal's unencrypted default data converter (unless overridden later)
+    data_converter = temporalio.converter.default()
+
+    # if AES_KEY env var is specified, enable payload encryption
+    aes_key = os.environ.get("AES_KEY")
+    if aes_key:
+        # enable payload encryption codec for the existing data converter
+        data_converter = dataclasses.replace(
+            temporalio.converter.default(),
+            payload_codec=EncryptionCodec(
+                key_id=os.environ.get("AES_KEY_ID", "unnamed-key"),
+                key=bytes.fromhex(aes_key),
+            ),
+        )
+    else:
+        LOG.warning("Payload encryption is NOT enabled (set AES_KEY env var)")
+
+    LOG.info(
+        f"Using Temporal endpoint {Config.temporal_endpoint} (namespace {Config.temporal_namespace})"
+    )
+    global TEMPORAL_CLIENT
+    TEMPORAL_CLIENT = await Client.connect(
+        Config.temporal_endpoint, data_converter=data_converter
+    )
+
+    # run Flask app until complete
+    await app.run(
+        host=host, port=port, debug=True, ssl_context=(Config.ssl_cert, Config.ssl_key)
+    )
+
+
 def env_help():
     """
     Create help string showing env variables used by this application. This extends what argparse
@@ -242,7 +158,6 @@ def env_help():
                 help += "\n"
 
 
-# @hydra.main(config_path=".", config_name="config")
 # async def main(cfg: DictConfig):
 async def main():
     p = argparse.ArgumentParser(
@@ -301,21 +216,16 @@ async def main():
     Config.global_task_queue = args.global_queue
     Config.validate_hmac = args.validate_hmac
 
-    # FIXME: poor mans plugin (use config in future)
-    register_webhook_forwarder(
-        "shopify", "temporal_forwarder.webhooks.shopify.ShopifyForwarder", Config
-    )
-    # register_webhook_forwarder(
-    #    "generic", "temporal_forwarder.webhooks.generic.GenericForwarder", Config
-    # )
+    # app must be created first so that env vars for configured forwarders can be displayed in help
+    app = create_app(Config)
 
-    # display help for any environment variables needed by adapters
+    # display help for any environment variables needed by forwarding plugins
     if args.help_env_vars:
         print(env_help())
         sys.exit(1)
 
     # start the Temporal webhook forwarder (blocking)
-    await start_temporal_forwarder(args.host, args.port)
+    await start_temporal_forwarder(app, args.host, args.port)
 
 
 if __name__ == "__main__":

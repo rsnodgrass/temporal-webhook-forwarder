@@ -28,3 +28,12 @@ balanced_wrapping = true
 
 [tool.pycln]
 all = true
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "src"
+]
