@@ -13,10 +13,11 @@ LOG = logging.getLogger()
 
 TEMPORAL_CLIENT = None
 
+
 async def get_temporal_client(config=None):
     global TEMPORAL_CLIENT
     if not TEMPORAL_CLIENT:
-            # use Temporal's unencrypted default data converter (unless overridden later)
+        # use Temporal's unencrypted default data converter (unless overridden later)
         data_converter = temporalio.converter.default()
 
         # if AES_KEY env var is specified, enable payload encryption
@@ -32,7 +33,7 @@ async def get_temporal_client(config=None):
             )
         else:
             LOG.warning("Payload encryption is NOT enabled (set AES_KEY env var)")
-        
+
         TEMPORAL_CLIENT = await Client.connect(
             Config.temporal_endpoint, data_converter=data_converter
         )

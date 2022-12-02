@@ -6,9 +6,11 @@ from temporal_forwarder.webhooks.generic import GenericWebhook
 NO_CONFIG = None
 NO_FORWARDER = None
 
+
 class MockRequest:
     def __init__(self, headers={}):
         self.headers = headers
+
 
 def test_headers_are_filtered():
     """
@@ -17,7 +19,7 @@ def test_headers_are_filtered():
     for security reasons, there may be a need to add blocking of
     some headers in future).
     """
-    original_headers = { "X-Hello": "World" }
+    original_headers = {"X-Hello": "World"}
 
     request = MockRequest(headers=original_headers)
     webhook = GenericWebhook(NO_CONFIG, request, NO_FORWARDER)
@@ -31,8 +33,8 @@ def test_request_id():
     attached to any request.
     """
     id = "fc6f8d28-2962-48a7-9e3c-16de4f03c1c0"
-    webhook = GenericWebhook(NO_CONFIG,
-                             MockRequest(headers={ "X-Request-ID": id }),
-                             NO_FORWARDER)
+    webhook = GenericWebhook(
+        NO_CONFIG, MockRequest(headers={"X-Request-ID": id}), NO_FORWARDER
+    )
 
     assert webhook.id == id

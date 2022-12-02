@@ -9,6 +9,7 @@ def test_healthcheck(test_client):
     assert response.status_code == 200
     assert b"OK" in response.data
 
+
 def test_deep_healthcheck(test_client):
     """
     FOR NOW DO NOT TEST for now, since a deep healthcheck

@@ -9,6 +9,7 @@ from . import EnvVar, TemporalDestination
 
 LOG = logging.getLogger()
 
+
 class WebhookCall(metaclass=ABCMeta):
     def __init__(self, config, request: Request):
         self._config = config
@@ -106,4 +107,3 @@ class WebhookForwarder(metaclass=ABCMeta):
         Factory method creating a new WebhookCall specific to a forwarder implementation
         """
         raise NotImplementedError
-

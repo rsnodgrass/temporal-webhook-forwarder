@@ -26,6 +26,7 @@ def register_plugins(config):
     #    "generic", "temporal_forwarder.webhooks.generic.GenericForwarder", onfig
     # )
 
+
 def discover_webhook_forwarders():
     """
     Forwarders use the naming convention forwarder_{plugin_name} by convention and will auto-load

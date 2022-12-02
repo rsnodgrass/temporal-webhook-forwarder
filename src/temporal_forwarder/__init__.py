@@ -7,6 +7,7 @@ LOG = logging.getLogger()
 
 DEFAULT_TEMPORAL_ENDPOINT = "localhost:7233"
 
+
 def create_app(config):
     """
     Create the Flask app (also used for functional tests)
@@ -23,6 +24,7 @@ def create_app(config):
 
         return app
 
+
 # dumb configuration mechanism, really should use hydra/OmegaConf, Dynaconf or dotenv
 @dataclass
 class Config:
@@ -34,6 +36,7 @@ class Config:
     ssl_key: str = "privkey.pem"
     fail_on_fatal: bool = True
     encoding: str = "utf-8"
+
 
 @dataclass
 class TemporalDestination:

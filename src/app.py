@@ -16,7 +16,7 @@ LOG = logging.getLogger()
 
 def env_help():
     """
-    Create help string showing env variables used by this app (and any configured forwarder plugins). 
+    Create help string showing env variables used by this app (and any configured forwarder plugins).
     This extends what argparse displays beyond just direct command line arguments.
     """
     help = ""
@@ -107,7 +107,10 @@ async def main():
 
     # run Flask app until complete
     await app.run(
-        host=args.host, port=args.port, debug=True, ssl_context=(Config.ssl_cert, Config.ssl_key)
+        host=args.host,
+        port=args.port,
+        debug=True,
+        ssl_context=(Config.ssl_cert, Config.ssl_key),
     )
 
 
